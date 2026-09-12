@@ -1,0 +1,61 @@
+# =====================================================================
+# ontology.yaml — オントロジー定義
+#   ObjectType / LinkType / ActionType をここに宣言する。
+#   server.py はこのファイルだけを読んで動くので、型を足しても
+#   コードは変更しない。
+# =====================================================================
+
+version: 1
+
+object_types:
+  Customer:
+    description: 取引先の顧客
+    key: customer_id
+    properties:
+      # enum は昇順に並べる ($next_enum が次の値へ進める)
+      name:  {type: string,  required: true}
+      tier:  {type: enum,    values: [bronze, silver, gold], required: true}
+      email: {type: string}
+
+  Order:
+    description: 顧客からの注文
+    key: order_id
+    properties:
+      amount: {type: integer, required: true}
+      status: {type: enum, values: [open, shipped, cancelled], required: true}
+      note:   {type: string}
+
+link_types:
+  places:
+    description: 顧客が注文を行う
+    from: Customer
+    to: Order
+    cardinality: one_to_many
+
+action_types:
+  cancel_order:
+    description: 未出荷の注文をキャンセルする
+    target: Order
+    parameters:
+      reason: {type: string, required: true}
+    preconditions:
+      - {property: status, op: eq, value: open}
+    effects:
+      status: cancelled
+      note: $params.reason
+
+  ship_order:
+    description: 注文を出荷済みにする
+    target: Order
+    preconditions:
+      - {property: status, op: eq, value: open}
+    effects:
+      status: shipped
+
+  upgrade_tier:
+    description: 顧客のティアを一段階上げる (bronze→silver→gold)
+    target: Customer
+    preconditions:
+      - {property: tier, op: ne, value: gold}
+    effects:
+      tier: $next_enum   # enum の次の値へ進める組み込み効果

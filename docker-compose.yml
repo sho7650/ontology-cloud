@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ontology
+      POSTGRES_PASSWORD: ontology
+      POSTGRES_DB: ontology
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"   # ローカルからのテスト実行用 (pytest)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ontology -d ontology"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  ontology-mcp:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://ontology:ontology@db:5432/ontology
+      MCP_TRANSPORT: http
+      MCP_PORT: "8000"
+      ACTOR: claude
+    volumes:
+      - ./ontology.yaml:/app/ontology.yaml:ro
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
