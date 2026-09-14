@@ -252,3 +252,11 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/python,macos,windows,visualstudiocode
+
+### Node / Cloudflare Workers ###
+node_modules/
+.wrangler/
+.dev.vars
+worker-configuration.d.ts
+coverage/
+seed.sql

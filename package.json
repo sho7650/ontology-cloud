@@ -1,0 +1,40 @@
+{
+  "name": "ontology-mcp",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "YAML-declared ontology exposed as an MCP server on Cloudflare Workers + D1, with Google login",
+  "license": "MIT",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "db:migrate:local": "wrangler d1 migrations apply ontology --local",
+    "db:migrate:remote": "wrangler d1 migrations apply ontology --remote",
+    "seed:sql": "node --experimental-strip-types scripts/seed-sql.ts > seed.sql",
+    "db:seed:local": "npm run seed:sql && wrangler d1 execute ontology --local --file seed.sql",
+    "db:seed:remote": "npm run seed:sql && wrangler d1 execute ontology --remote --file seed.sql"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "0.10.3",
+    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "agents": "0.23.0",
+    "hono": "4.13.7",
+    "yaml": "2.9.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.1.8",
+    "@cloudflare/workers-types": "5.20260914.1",
+    "@vitest/coverage-istanbul": "^4.1.11",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.11",
+    "wrangler": "4.131.1"
+  }
+}
