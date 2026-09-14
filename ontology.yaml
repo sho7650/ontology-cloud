@@ -1,8 +1,8 @@
 # =====================================================================
 # ontology.yaml — オントロジー定義
 #   ObjectType / LinkType / ActionType をここに宣言する。
-#   server.py はこのファイルだけを読んで動くので、型を足しても
-#   コードは変更しない。
+#   サーバーはこのファイルだけを読んで動くので、型を足しても
+#   コードは変更しない。起動時にスキーマと参照整合性を検証する。
 # =====================================================================
 
 version: 1
@@ -25,12 +25,27 @@ object_types:
       status: {type: enum, values: [open, shipped, cancelled], required: true}
       note:   {type: string}
 
+  Product:
+    description: 注文に含まれる商品
+    key: product_id
+    properties:
+      name:     {type: string,  required: true}
+      stock:    {type: integer, required: true}
+      price:    {type: integer, required: true}
+      category: {type: enum, values: [parts, tools, consumables], required: true}
+
 link_types:
   places:
     description: 顧客が注文を行う
     from: Customer
     to: Order
     cardinality: one_to_many
+
+  contains:
+    description: 注文に商品が含まれる
+    from: Order
+    to: Product
+    cardinality: many_to_many
 
 action_types:
   cancel_order:
@@ -59,3 +74,11 @@ action_types:
       - {property: tier, op: ne, value: gold}
     effects:
       tier: $next_enum   # enum の次の値へ進める組み込み効果
+
+  restock:
+    description: 在庫が 10 未満の商品を 100 まで補充する
+    target: Product
+    preconditions:
+      - {property: stock, op: lt, value: 10}
+    effects:
+      stock: 100

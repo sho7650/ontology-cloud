@@ -1,0 +1,5 @@
+# wrangler dev 用。コピーして .dev.vars にする (git には入れない)
+GOOGLE_CLIENT_ID=<Google Cloud Console の OAuth クライアント ID>
+GOOGLE_CLIENT_SECRET=<同 クライアントシークレット>
+COOKIE_ENCRYPTION_KEY=<openssl rand -hex 32 の出力>
+# HOSTED_DOMAIN=example.com   # 任意: Google Workspace ドメインで制限する場合
