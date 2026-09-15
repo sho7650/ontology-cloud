@@ -19,7 +19,8 @@ const STYLE = `
   .muted { color: #616e7c; font-size: 0.85rem; }
 `;
 
-const page = (title: string, body: string): string =>
+/** 共通レイアウト。管理画面のほか、プライバシーポリシー・利用規約ページでも使う。 */
+export const page = (title: string, body: string): string =>
   `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">` +
   `<title>${esc(title)}</title><style>${STYLE}</style></head><body>${body}</body></html>`;
 
