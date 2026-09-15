@@ -18,7 +18,7 @@ Cloudflare Workers + D1 上で動き、Google アカウントでログインす�
 | MCP サーバー | `src/mcp/` | 汎用 5 ツール + 所有者専用 `reset_sample_data` |
 | 認証 | `src/auth/`, `src/index.ts` | `@cloudflare/workers-oauth-provider` で Google を上流にした OAuth 2.1 (Dynamic Client Registration 対応) |
 | 管理画面 | `src/admin/` | `/admin` で所有者だけがデータ一覧とリセットを行える |
-| 公開ページ | `src/legal/` | `/privacy` と `/terms` (Google の OAuth 同意画面に登録するプライバシーポリシー・利用規約) |
+| 公開ページ | `src/home.ts`, `src/legal/` | `/` (アプリの説明)、`/privacy`、`/terms` — Google の OAuth 同意画面に登録するホームページ・プライバシーポリシー・利用規約 |
 
 ## 1. 試す (公開デモに接続する)
 
@@ -140,9 +140,9 @@ npx wrangler d1 execute ontology --remote --command \
 
 必要なもの: Cloudflare アカウント (Workers Free で足ります)、Google Cloud のプロジェクト、このリポジトリの fork または clone。`wrangler` コマンドは不要です。
 
-### 6.1 所有者を設定する
+### 6.1 所有者とアプリ名を設定する
 
-`wrangler.jsonc` の `vars.OWNER_EMAIL` を自分の Google アカウントに書き換えて push します。管理画面とリセットはこのアカウントだけに許可されます。
+`wrangler.jsonc` の `vars.OWNER_EMAIL` を自分の Google アカウントに、`vars.APP_NAME` を Google の OAuth 同意画面に登録するアプリ名 (既定: `Ontology Demo Service`) に合わせて push します。管理画面とリセットは `OWNER_EMAIL` のアカウントだけに許可され、`APP_NAME` はトップページ・プライバシーポリシー・利用規約・承認ダイアログに表示されます (Google の審査ではホームページのアプリ名と同意画面のアプリ名の一致が求められます)。
 
 ### 6.2 Cloudflare: GitHub 連携でデプロイする
 
@@ -164,11 +164,12 @@ https://ontology-mcp.<サブドメイン>.workers.dev/admin/callback    # 管理
 
 OAuth 同意画面は「外部」にし、公開するかテストユーザーを登録します。リダイレクト URI は後から追加・編集できるので、ローカル開発用 (`http://localhost:8788/callback`, `http://localhost:8788/admin/callback`) は必要になったときに足せば十分です。
 
-同意画面の「アプリのプライバシーポリシー」「アプリの利用規約」には Worker が配信する次のページを指定します (内容は `src/legal/pages.ts`。運営者のメールアドレスは `OWNER_EMAIL` から自動で入ります):
+同意画面の「アプリのホームページ」「アプリのプライバシーポリシー」「アプリの利用規約」には Worker が配信する次のページを指定します (内容は `src/home.ts` と `src/legal/pages.ts`。日本語と英語を併記し、アプリ名と運営者のメールアドレスは `APP_NAME` / `OWNER_EMAIL` から入ります):
 
 ```
-https://ontology-mcp.<サブドメイン>.workers.dev/privacy
-https://ontology-mcp.<サブドメイン>.workers.dev/terms
+https://ontology-mcp.<サブドメイン>.workers.dev/          # ホームページ (ログイン不要で目的・機能・データの扱いを説明)
+https://ontology-mcp.<サブドメイン>.workers.dev/privacy   # プライバシーポリシー
+https://ontology-mcp.<サブドメイン>.workers.dev/terms     # 利用規約
 ```
 
 アプリを「公開」して Google の検証を受ける場合は、承認済みドメインとして `<サブドメイン>.workers.dev` を Search Console で所有権確認する必要があります。HTML タグ方式の `content` 値を Worker の変数 `GOOGLE_SITE_VERIFICATION` に入れると、トップページに `<meta name="google-site-verification">` が出力されます。テストユーザーだけで使う間は不要です。
