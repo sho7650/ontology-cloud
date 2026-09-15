@@ -18,6 +18,7 @@ Cloudflare Workers + D1 上で動き、Google アカウントでログインす�
 | MCP サーバー | `src/mcp/` | 汎用 5 ツール + 所有者専用 `reset_sample_data` |
 | 認証 | `src/auth/`, `src/index.ts` | `@cloudflare/workers-oauth-provider` で Google を上流にした OAuth 2.1 (Dynamic Client Registration 対応) |
 | 管理画面 | `src/admin/` | `/admin` で所有者だけがデータ一覧とリセットを行える |
+| 公開ページ | `src/legal/` | `/privacy` と `/terms` (Google の OAuth 同意画面に登録するプライバシーポリシー・利用規約) |
 
 ## 1. 試す (公開デモに接続する)
 
@@ -162,6 +163,15 @@ https://ontology-mcp.<サブドメイン>.workers.dev/admin/callback    # 管理
 ```
 
 OAuth 同意画面は「外部」にし、公開するかテストユーザーを登録します。リダイレクト URI は後から追加・編集できるので、ローカル開発用 (`http://localhost:8788/callback`, `http://localhost:8788/admin/callback`) は必要になったときに足せば十分です。
+
+同意画面の「アプリのプライバシーポリシー」「アプリの利用規約」には Worker が配信する次のページを指定します (内容は `src/legal/pages.ts`。運営者のメールアドレスは `OWNER_EMAIL` から自動で入ります):
+
+```
+https://ontology-mcp.<サブドメイン>.workers.dev/privacy
+https://ontology-mcp.<サブドメイン>.workers.dev/terms
+```
+
+アプリを「公開」して Google の検証を受ける場合は、承認済みドメインとして `<サブドメイン>.workers.dev` を Search Console で所有権確認する必要があります。HTML タグ方式の `content` 値を Worker の変数 `GOOGLE_SITE_VERIFICATION` に入れると、トップページに `<meta name="google-site-verification">` が出力されます。テストユーザーだけで使う間は不要です。
 
 ### 6.4 Cloudflare: シークレットを登録する
 

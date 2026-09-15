@@ -14,6 +14,8 @@ interface ExtraEnv {
   GOOGLE_CLIENT_SECRET: string;
   COOKIE_ENCRYPTION_KEY: string;
   HOSTED_DOMAIN?: string;
+  /** 任意: Google Search Console の所有権確認 meta タグの content 値 */
+  GOOGLE_SITE_VERIFICATION?: string;
   /** テストのみ: vitest.config.ts が miniflare binding として渡すマイグレーション一覧 */
   TEST_MIGRATIONS: import("@cloudflare/vitest-plugin").D1Migration[];
 }

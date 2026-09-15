@@ -13,20 +13,33 @@ import { Hono } from "hono";
 import { adminRoutes } from "./admin/routes";
 import { esc } from "./admin/views";
 import { GoogleHandler } from "./auth/google-handler";
+import { privacyPage, termsPage } from "./legal/pages";
 import { mcpApiHandler } from "./mcp/handler";
 
 const app = new Hono<{ Bindings: Env & { OAUTH_PROVIDER: OAuthHelpers } }>();
 
+const legalContext = (c: { req: { url: string }; env: Env }) => ({
+  serviceUrl: new URL("/", c.req.url).href,
+  ownerEmail: c.env.OWNER_EMAIL,
+});
+
 app.get("/", (c) => {
   const mcpUrl = new URL("/mcp", c.req.url).href;
+  // Google Search Console でサイト所有権を確認するときの meta タグ (任意。OAuth アプリ公開時のドメイン確認用)
+  const verification = c.env.GOOGLE_SITE_VERIFICATION
+    ? `<meta name="google-site-verification" content="${esc(c.env.GOOGLE_SITE_VERIFICATION)}">`
+    : "";
   return c.html(
-    `<!doctype html><meta charset="utf-8"><title>ontology-mcp</title>` +
+    `<!doctype html><meta charset="utf-8">${verification}<title>ontology-mcp</title>` +
       `<body style="font-family: sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem">` +
       `<h1>ontology-mcp</h1><p>YAML で宣言したオントロジーを MCP ツールとして公開するデモです。Google アカウントでログインすると使えます。</p>` +
       `<p>Claude Code:</p><pre>claude mcp add --transport http ontology ${esc(mcpUrl)}</pre>` +
-      `<p><a href="/admin">管理画面 (所有者のみ)</a></p></body>`,
+      `<p><a href="/admin">管理画面 (所有者のみ)</a></p>` +
+      `<p><a href="/privacy">プライバシーポリシー</a> · <a href="/terms">利用規約</a></p></body>`,
   );
 });
+app.get("/privacy", (c) => c.html(privacyPage(legalContext(c))));
+app.get("/terms", (c) => c.html(termsPage(legalContext(c))));
 app.route("/admin", adminRoutes);
 app.route("/", GoogleHandler);
 

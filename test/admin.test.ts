@@ -240,3 +240,32 @@ describe("OAuth surface", () => {
     expect(await res.text()).toContain(`claude mcp add --transport http ontology ${BASE}/mcp`);
   });
 });
+
+describe("legal pages", () => {
+  it("serves the privacy policy with the owner contact and Google data policy", async () => {
+    const res = await SELF.fetch(`${BASE}/privacy`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    const html = await res.text();
+    expect(html).toContain("プライバシーポリシー");
+    expect(html).toContain(`mailto:${OWNER}`);
+    expect(html).toContain("Google API Services User Data Policy");
+    expect(html).toContain(`${BASE}/`);
+  });
+
+  it("serves the terms of service", async () => {
+    const res = await SELF.fetch(`${BASE}/terms`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("利用規約");
+    expect(html).toContain("すべての利用者の間で共有");
+    expect(html).toContain('href="/privacy"');
+  });
+
+  it("links both pages from the landing page and omits the verification tag when unset", async () => {
+    const html = await (await SELF.fetch(`${BASE}/`)).text();
+    expect(html).toContain('href="/privacy"');
+    expect(html).toContain('href="/terms"');
+    expect(html).not.toContain("google-site-verification");
+  });
+});
