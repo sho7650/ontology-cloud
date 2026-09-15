@@ -24,7 +24,7 @@ Cloudflare Workers + D1 上で動き、Google アカウントでログインす�
 **Claude Code**:
 
 ```bash
-claude mcp add --transport http ontology https://<worker>.<subdomain>.workers.dev/mcp
+claude mcp add --transport http ontology https://ontology-mcp.<サブドメイン>.workers.dev/mcp
 ```
 
 Claude Code 内で `/mcp` を開き ontology を選ぶとブラウザが開くので、Google アカウントでログインして承認します。
@@ -128,58 +128,75 @@ precondition 不成立は `ok: false` と理由を返し、`audit_log` に `prec
 
 ### 「型を足してもコードは変わらない」を見せる
 
-`ontology.yaml` に型・リンク・アクションを追記して `npm run deploy` するだけです (`Product` / `contains` / `restock` はまさにそうやって足したものです)。インスタンスは `src/store/seed.ts` に足してリセットするか、D1 に直接 INSERT します:
+`ontology.yaml` に型・リンク・アクションを追記して push するだけです (GitHub 連携なら自動デプロイ、CLI なら `npm run deploy`) (`Product` / `contains` / `restock` はまさにそうやって足したものです)。インスタンスは `src/store/seed.ts` に足してリセットするか、D1 に直接 INSERT します:
 
 ```bash
 npx wrangler d1 execute ontology --remote --command \
   "INSERT INTO objects (type, id, props) VALUES ('Product', 'P009', '{\"name\":\"ワッシャー\",\"stock\":5,\"price\":30,\"category\":\"parts\"}')"
 ```
 
-## 6. 自分でデプロイする
+## 6. 自分でデプロイする (ダッシュボードだけで完結)
 
-必要なもの: Cloudflare アカウント (Workers Free で足ります)、Google Cloud のプロジェクト、Node.js 22 以上。
+必要なもの: Cloudflare アカウント (Workers Free で足ります)、Google Cloud のプロジェクト、このリポジトリの fork または clone。`wrangler` コマンドは不要です。
 
-### 6.1 Google OAuth クライアント
+### 6.1 所有者を設定する
 
-Google Cloud Console → API とサービス → 認証情報 → OAuth クライアント ID (ウェブ アプリケーション) を作成し、承認済みリダイレクト URI に次を登録します (`<worker>` は後で決まる workers.dev のホスト名):
+`wrangler.jsonc` の `vars.OWNER_EMAIL` を自分の Google アカウントに書き換えて push します。管理画面とリセットはこのアカウントだけに許可されます。
+
+### 6.2 Cloudflare: GitHub 連携でデプロイする
+
+1. Cloudflare ダッシュボード → **Workers & Pages** → **Create** → **Import a repository** で GitHub を接続し、このリポジトリを選ぶ
+2. Worker 名は `wrangler.jsonc` の `name` と同じ **`ontology-mcp`** にする (一致しないとビルドが失敗する)。ビルドコマンドは空、デプロイコマンドは既定の `npx wrangler deploy` のまま
+3. **Deploy** を押す。初回デプロイで KV (`OAUTH_KV`) と D1 (`ontology`) が自動作成される (`wrangler.jsonc` に id を書いていないため)
+4. デプロイ後に表示される URL `https://ontology-mcp.<あなたのサブドメイン>.workers.dev` を控える。サブドメインは Workers & Pages の画面右側 **Your subdomain** にも出ているので、先に知りたければそこで確認できる
+
+以後は `main` に push するたびに自動でデプロイされます。
+
+### 6.3 Google: OAuth クライアントを作る
+
+Google Cloud Console → API とサービス → 認証情報 → **OAuth クライアント ID** (ウェブ アプリケーション) を作成し、承認済みリダイレクト URI に 6.2 で控えた URL を使って次を登録します:
 
 ```
-https://<worker>.<subdomain>.workers.dev/callback          # MCP クライアント向けログイン
-https://<worker>.<subdomain>.workers.dev/admin/callback    # 管理画面向けログイン
-http://localhost:8788/callback                              # ローカル開発
-http://localhost:8788/admin/callback
+https://ontology-mcp.<サブドメイン>.workers.dev/callback          # MCP クライアント向けログイン
+https://ontology-mcp.<サブドメイン>.workers.dev/admin/callback    # 管理画面向けログイン
 ```
 
-OAuth 同意画面は「外部」にし、公開するかテストユーザーを登録します。
+OAuth 同意画面は「外部」にし、公開するかテストユーザーを登録します。リダイレクト URI は後から追加・編集できるので、ローカル開発用 (`http://localhost:8788/callback`, `http://localhost:8788/admin/callback`) は必要になったときに足せば十分です。
 
-### 6.2 Cloudflare リソース
+### 6.4 Cloudflare: シークレットを登録する
+
+Worker の **Settings → Variables & Secrets** で次の 3 つを **Secret** として追加します (保存すると即座に反映され、再デプロイは不要):
+
+| 名前 | 値 |
+|---|---|
+| `GOOGLE_CLIENT_ID` | 6.3 のクライアント ID |
+| `GOOGLE_CLIENT_SECRET` | 6.3 のクライアント シークレット |
+| `COOKIE_ENCRYPTION_KEY` | ランダムな 64 桁の 16 進文字列 (`openssl rand -hex 32` など) |
+
+### 6.5 初期化して接続する
+
+1. `https://ontology-mcp.<サブドメイン>.workers.dev/admin` を開き、所有者の Google アカウントでログインする
+2. **サンプルデータをリセット** を押す。テーブル作成 (`migrations/0001_init.sql` と同じ内容) とサンプルデータ投入がここで行われる
+3. `claude mcp add --transport http ontology https://ontology-mcp.<サブドメイン>.workers.dev/mcp` で接続し、`/mcp` から Google ログインして README 3 章のプロンプトを試す
+
+### 6.6 代わりに wrangler CLI でデプロイする場合
 
 ```bash
 npm install
 npx wrangler login
-npx wrangler kv namespace create OAUTH_KV      # 出力の id を wrangler.jsonc の kv_namespaces に貼る
-npx wrangler d1 create ontology                # 出力の database_id を wrangler.jsonc の d1_databases に貼る
-```
-
-`wrangler.jsonc` の `vars.OWNER_EMAIL` を自分の Google アカウントに書き換えます。管理画面とリセットはこのアカウントだけに許可されます。
-
-### 6.3 シークレットとデプロイ
-
-```bash
 npx wrangler secret put GOOGLE_CLIENT_ID
 npx wrangler secret put GOOGLE_CLIENT_SECRET
-npx wrangler secret put COOKIE_ENCRYPTION_KEY   # openssl rand -hex 32 の出力
-npm run db:migrate:remote                       # D1 にテーブルを作る
-npm run deploy                                  # https://<worker>.<subdomain>.workers.dev
-npm run db:seed:remote                          # サンプルデータ投入 (または /admin からリセット)
+npx wrangler secret put COOKIE_ENCRYPTION_KEY
+npm run deploy                  # KV / D1 が無ければ自動作成され、id が wrangler.jsonc に書き戻される
+npm run db:migrate:remote       # または /admin のリセットで代用
+npm run db:seed:remote          # 同上
 ```
-
-デプロイ後、`https://<worker>.../admin` に所有者でログインできること、`claude mcp add` で接続してツールが見えることを確認します。
 
 ## 7. ローカル開発
 
 ```bash
 cp .dev.vars.example .dev.vars        # Google のローカル用クライアント ID/Secret と COOKIE_ENCRYPTION_KEY を入れる
+npm install
 npm run db:migrate:local
 npm run db:seed:local
 npm run dev                            # http://localhost:8788
@@ -206,6 +223,7 @@ npm run type-check
 - **認証の二本立て**: MCP クライアントは OAuth 2.1 + Dynamic Client Registration (`/authorize`, `/token`, `/register`) で、`workers-oauth-provider` が Google ログインを代理する。ブラウザの管理画面は同じ Google クライアントで別途ログインし、HMAC 署名 Cookie (`Path=/admin`) を持つ。Cloudflare Access は `/mcp` の OAuth を壊すので使わない
 - **楽観ロック**: D1 には `FOR UPDATE` が無いので、読んだ `props` テキストと一致する行だけを UPDATE し、0 件なら読み直して最大 3 回試す。監査行は同じバッチで `WHERE changes() = 1` を付けて INSERT するので、空振りしたときに残らない
 - **共有データ**: 全利用者で 1 つのデータ。監査ログの actor に Google の email が入るので「誰が」は追える
+- **wrangler 不要のデプロイ**: `wrangler.jsonc` に KV / D1 の id を書かず自動プロビジョニングに任せ、テーブル作成は `/admin` のリセット (`src/store/schema.ts` が `migrations/0001_init.sql` を同梱して実行) が兼ねる。ダッシュボードの GitHub 連携だけで公開できる
 - **無料枠の目安**: Workers Free (10 万 req/日)、KV (書き込み 1,000/日: OAuth のログイン・更新で消費)、D1 (読み 500 万/日)。デモ利用なら十分
 
 ## 10. 次の段階

@@ -192,6 +192,28 @@ describe("POST /admin/reset", () => {
     expect(log).toMatchObject({ actor: OWNER, action: "reset_sample_data", result: "ok" });
   });
 
+  it("initialises a brand-new database from the dashboard and reset (no wrangler migrations)", async () => {
+    await env.DB.batch([
+      env.DB.prepare("DROP TABLE IF EXISTS links"),
+      env.DB.prepare("DROP TABLE IF EXISTS objects"),
+      env.DB.prepare("DROP TABLE IF EXISTS audit_log"),
+    ]);
+    const cookie = await ownerCookie();
+    const page = await SELF.fetch(`${BASE}/admin`, { headers: { Cookie: cookie } });
+    expect(page.status).toBe(200);
+    expect(await page.text()).toContain("audit_log");
+
+    const csrf = (await csrfToken(SECRET, new Request(BASE, { headers: { Cookie: cookie } }))) ?? "";
+    const res = await SELF.fetch(`${BASE}/admin/reset`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { Cookie: cookie },
+      body: new URLSearchParams({ csrf }),
+    });
+    expect(res.status).toBe(303);
+    expect(await listAllObjects(env.DB)).toHaveLength(48);
+  });
+
   it("logout clears the session cookie", async () => {
     const res = await SELF.fetch(`${BASE}/admin/logout`, { method: "POST", redirect: "manual", headers: { Cookie: await ownerCookie() } });
     expect(res.status).toBe(303);
