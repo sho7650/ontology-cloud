@@ -40,7 +40,7 @@ app.get("/authorize", async (c) => {
 		csrfToken,
 		server: {
 			description: "YAML 宣言オントロジーを MCP ツールとして公開するデモ。Google アカウントの email を操作者として監査ログに記録します。",
-			name: "ontology-mcp",
+			name: c.env.APP_NAME,
 		},
 		setCookie,
 		state: { oauthReqInfo },

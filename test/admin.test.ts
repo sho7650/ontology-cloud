@@ -241,31 +241,74 @@ describe("OAuth surface", () => {
   });
 });
 
-describe("legal pages", () => {
-  it("serves the privacy policy with the owner contact and Google data policy", async () => {
+describe("public pages for the Google OAuth consent screen", () => {
+  const APP = env.APP_NAME;
+
+  it("home page explains the app under the consent-screen name without a login prompt", async () => {
+    const res = await SELF.fetch(`${BASE}/`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain(`<title>${APP}</title>`);
+    expect(html).toContain(`<h1>${APP}</h1>`);
+    expect(html).toContain("このアプリの目的");
+    expect(html).toContain("Google アカウント情報の扱い");
+    expect(html).toContain(`claude mcp add --transport http ontology ${BASE}/mcp`);
+    expect(html).toContain('href="/privacy"');
+    expect(html).toContain('href="/terms"');
+    expect(html).toContain(`mailto:${OWNER}`);
+    expect(html).not.toContain('href="/admin"');
+    expect(html).not.toContain("Google でログイン");
+    expect(html).not.toContain("google-site-verification");
+  });
+
+  it("privacy policy is bilingual and covers collection, use, storage, sharing, deletion", async () => {
     const res = await SELF.fetch(`${BASE}/privacy`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
-    expect(html).toContain("プライバシーポリシー");
-    expect(html).toContain(`mailto:${OWNER}`);
-    expect(html).toContain("Google API Services User Data Policy");
-    expect(html).toContain(`${BASE}/`);
+    for (const needle of [
+      `${APP} プライバシーポリシー`,
+      `${APP} Privacy Policy (English)`,
+      "<code>email</code>",
+      "<code>profile</code>",
+      "削除の請求",
+      "Google API Services User Data Policy",
+      "Limited Use",
+      "myaccount.google.com/permissions",
+      `mailto:${OWNER}`,
+      `${BASE}/`,
+    ]) {
+      expect(html, needle).toContain(needle);
+    }
   });
 
-  it("serves the terms of service", async () => {
+  it("terms of service is bilingual", async () => {
     const res = await SELF.fetch(`${BASE}/terms`);
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain("利用規約");
+    expect(html).toContain(`${APP} 利用規約`);
+    expect(html).toContain(`${APP} Terms of Service (English)`);
     expect(html).toContain("すべての利用者の間で共有");
     expect(html).toContain('href="/privacy"');
   });
 
-  it("links both pages from the landing page and omits the verification tag when unset", async () => {
-    const html = await (await SELF.fetch(`${BASE}/`)).text();
-    expect(html).toContain('href="/privacy"');
-    expect(html).toContain('href="/terms"');
-    expect(html).not.toContain("google-site-verification");
+  it("OAuth approval dialog shows the consent-screen app name", async () => {
+    const reg = await SELF.fetch(`${BASE}/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ client_name: "probe", redirect_uris: ["http://localhost:9999/callback"] }),
+    });
+    const { client_id } = (await reg.json()) as { client_id: string };
+    const params = new URLSearchParams({
+      response_type: "code",
+      client_id,
+      redirect_uri: "http://localhost:9999/callback",
+      code_challenge: "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+      code_challenge_method: "S256",
+      state: "s",
+    });
+    const res = await SELF.fetch(`${BASE}/authorize?${params}`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain(APP);
   });
 });
