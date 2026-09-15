@@ -3,6 +3,7 @@
  * scripts/seed-sql.ts も同じ配列から seed.sql を生成するので、データはここだけで管理する。
  */
 import type { Props } from "../ontology/schema";
+import { ensureSchema } from "./schema";
 
 export type SeedObject = { type: string; id: string; props: Props };
 export type SeedLink = { type: string; from: string; to: string };
@@ -105,8 +106,13 @@ function insertLinks(db: D1Database, rows: readonly SeedLink[]): D1PreparedState
     .bind(...rows.flatMap((l) => [l.type, l.from, l.to]));
 }
 
-/** 全テーブルを空にしてサンプルデータを入れ直す (1 バッチ = 1 トランザクション)。 */
+/**
+ * 全テーブルを空にしてサンプルデータを入れ直す (1 バッチ = 1 トランザクション)。
+ * 先にテーブルが無ければ作るので、wrangler を使わないデプロイ (ダッシュボードの GitHub 連携) でも
+ * /admin のリセットだけで初期化が完了する。
+ */
 export async function resetSampleData(db: D1Database): Promise<void> {
+  await ensureSchema(db);
   await db.batch([
     db.prepare("DELETE FROM links"),
     db.prepare("DELETE FROM objects"),

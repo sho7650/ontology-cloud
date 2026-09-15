@@ -172,3 +172,20 @@ function withInterference(real: D1Database, times: number): D1Database {
     get: (target, prop, receiver) => (prop === "batch" ? batch : Reflect.get(target, prop, receiver)),
   });
 }
+
+describe("ensureSchema", () => {
+  it("splits the migration into statements without comments", async () => {
+    const { splitStatements } = await import("../src/store/schema");
+    const stmts = splitStatements("-- c\nCREATE TABLE IF NOT EXISTS a (x INT);\n\n-- d\nCREATE INDEX IF NOT EXISTS i ON a (x);\n");
+    expect(stmts).toEqual(["CREATE TABLE IF NOT EXISTS a (x INT)", "CREATE INDEX IF NOT EXISTS i ON a (x)"]);
+  });
+
+  it("is idempotent on an already-migrated database", async () => {
+    const { ensureSchema } = await import("../src/store/schema");
+    await ensureSchema(db);
+    await ensureSchema(db);
+    const tables = await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('objects','links','audit_log') ORDER BY name").all<{ name: string }>();
+    expect(tables.results.map((t) => t.name)).toEqual(["audit_log", "links", "objects"]);
+    expect(await listAllObjects(db)).toHaveLength(SEED_OBJECTS.length);
+  });
+});

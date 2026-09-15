@@ -8,23 +8,16 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
-  // ontology.yaml を文字列として同梱する
-  "rules": [{ "type": "Text", "globs": ["**/*.yaml"], "fallthrough": true }],
+  // ontology.yaml と migrations/*.sql を文字列として同梱する
+  "rules": [{ "type": "Text", "globs": ["**/*.yaml", "**/*.sql"], "fallthrough": true }],
   "vars": {
     // 管理画面とリセットを許可する Google アカウント
     "OWNER_EMAIL": "tak7650@gmail.com"
   },
-  "kv_namespaces": [
-    { "binding": "OAUTH_KV", "id": "<wrangler kv namespace create OAUTH_KV の出力に置き換える>" }
-  ],
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "ontology",
-      "database_id": "<wrangler d1 create ontology の出力に置き換える>",
-      "migrations_dir": "migrations"
-    }
-  ],
+  // id を書かないことで、初回デプロイ時に KV と D1 が自動作成される (wrangler 4.45+ の自動プロビジョニング。
+  // ダッシュボードの GitHub 連携からのデプロイでも有効)。手動で作った既存リソースを使う場合は id / database_id を追記する。
+  "kv_namespaces": [{ "binding": "OAUTH_KV" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "ontology", "migrations_dir": "migrations" }],
   "observability": { "enabled": true },
   "dev": { "port": 8788 }
 }

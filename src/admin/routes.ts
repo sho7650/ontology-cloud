@@ -8,6 +8,7 @@ import { fetchUpstreamAuthToken, getUpstreamAuthorizeUrl } from "../auth/utils";
 import { RESET_ACTION } from "../mcp/server";
 import { recentAudit, writeAudit } from "../store/audit";
 import { listAllLinks, listAllObjects } from "../store/objects";
+import { ensureSchema } from "../store/schema";
 import { resetSampleData } from "../store/seed";
 import {
   clearSessionCookie,
@@ -37,6 +38,7 @@ async function ownerSession(request: Request, env: Env): Promise<string | null> 
 adminRoutes.get("/", async (c) => {
   const email = await ownerSession(c.req.raw, c.env);
   if (!email) return c.html(loginPage());
+  await ensureSchema(c.env.DB); // 初回デプロイ直後の空の D1 でも一覧 (空) とリセットボタンを出せるように
   const [objects, links, audit] = await Promise.all([listAllObjects(c.env.DB), listAllLinks(c.env.DB), recentAudit(c.env.DB, AUDIT_ROWS)]);
   const csrf = (await csrfToken(c.env.COOKIE_ENCRYPTION_KEY, c.req.raw)) ?? "";
   return c.html(dashboardPage({ email, csrf, objects, links, audit, resetDone: c.req.query("reset") === "done" }));
