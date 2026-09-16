@@ -58,7 +58,7 @@ export function homePage(ctx: HomeContext): string {
   return page(
     ctx.appName,
     `<h1>${app}</h1>
-<p><img src="${HERO_IMAGE_PATH}" alt="${app}: 宣言されたオントロジーの世界を AI アシスタントと一緒に探索するイメージ" width="1600" height="900" style="max-width: 100%; height: auto; border-radius: 8px; display: block;"></p>
+<p><img src="${HERO_IMAGE_PATH}" alt="${app}: 宣言されたオントロジーの世界を AI アシスタントと一緒に探索するイメージ" width="1600" height="900" style="width: 50%; min-width: min(320px, 100%); max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto;"></p>
 <p><strong>${app}</strong> は、YAML で宣言したオントロジー (データの型・関係・操作のルール) を
 <a href="https://modelcontextprotocol.io/" rel="noopener">MCP (Model Context Protocol)</a> サーバーとして公開し、
 Claude などの AI アシスタントから自然言語で探索・操作できるようにする技術デモです。
