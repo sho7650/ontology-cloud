@@ -12,7 +12,7 @@ import { Hono } from "hono";
 
 import { adminRoutes } from "./admin/routes";
 import { GoogleHandler } from "./auth/google-handler";
-import { homePage } from "./home";
+import { HERO_IMAGE_PATH, OG_IMAGE_PATH, homePage } from "./home";
 import { privacyPage, termsPage } from "./legal/pages";
 import { mcpApiHandler } from "./mcp/handler";
 
@@ -28,12 +28,16 @@ app.get("/", (c) =>
   c.html(
     homePage({
       appName: c.env.APP_NAME,
+      siteUrl: new URL("/", c.req.url).href,
       mcpUrl: new URL("/mcp", c.req.url).href,
       ownerEmail: c.env.OWNER_EMAIL,
       siteVerification: c.env.GOOGLE_SITE_VERIFICATION,
     }),
   ),
 );
+// 画像は静的アセット。本番では Cloudflare が Worker より先に配信するが、明示的にも返せるようにしておく (テスト環境用)
+app.get(HERO_IMAGE_PATH, (c) => c.env.ASSETS.fetch(c.req.raw));
+app.get(OG_IMAGE_PATH, (c) => c.env.ASSETS.fetch(c.req.raw));
 app.get("/privacy", (c) => c.html(privacyPage(legalContext(c))));
 app.get("/terms", (c) => c.html(termsPage(legalContext(c))));
 app.route("/admin", adminRoutes);

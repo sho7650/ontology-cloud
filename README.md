@@ -19,6 +19,7 @@ Cloudflare Workers + D1 上で動き、Google アカウントでログインす�
 | 認証 | `src/auth/`, `src/index.ts` | `@cloudflare/workers-oauth-provider` で Google を上流にした OAuth 2.1 (Dynamic Client Registration 対応) |
 | 管理画面 | `src/admin/` | `/admin` で所有者だけがデータ一覧とリセットを行える |
 | 公開ページ | `src/home.ts`, `src/legal/` | `/` (アプリの説明)、`/privacy`、`/terms` — Google の OAuth 同意画面に登録するホームページ・プライバシーポリシー・利用規約 |
+| 画像 | `public/` | トップページの `hero.jpg` (1600×900) と、X / note.com などのリンクカード用 `og-image.jpg` (1200×630)。Workers の静的アセットとして `/` 直下で配信 |
 
 ## 1. 試す (公開デモに接続する)
 
@@ -173,6 +174,10 @@ https://ontology-mcp.<サブドメイン>.workers.dev/terms     # 利用規約
 ```
 
 アプリを「公開」して Google の検証を受ける場合は、承認済みドメインとして `<サブドメイン>.workers.dev` を Search Console で所有権確認する必要があります。HTML タグ方式の `content` 値を Worker の変数 `GOOGLE_SITE_VERIFICATION` に入れると、トップページに `<meta name="google-site-verification">` が出力されます。テストユーザーだけで使う間は不要です。
+
+### 6.3.1 トップページの画像とリンクカード (OGP)
+
+トップページは OGP と Twitter Card のメタタグ (`og:title`, `og:description`, `og:image`, `twitter:card=summary_large_image` など) を出力するので、X や note.com にリンクを貼ると画像付きのカードになります。画像を差し替える場合は `public/hero.jpg` (ページ表示用、1600×900) と `public/og-image.jpg` (カード用、1200×630、1 MB 未満推奨) を置き換えて push します。カードのキャッシュは各サービス側にあるため、差し替え直後は古い画像が表示されることがあります (X は [Card Validator](https://cards-dev.twitter.com/validator) 相当の再取得、note は記事の再保存で更新されます)。
 
 ### 6.4 Cloudflare: シークレットを登録する
 

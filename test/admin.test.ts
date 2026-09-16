@@ -261,6 +261,26 @@ describe("public pages for the Google OAuth consent screen", () => {
     expect(html).not.toContain("google-site-verification");
   });
 
+  it("home page carries OGP / Twitter Card tags with absolute image URL and shows the hero image", async () => {
+    const html = await (await SELF.fetch(`${BASE}/`)).text();
+    const head = html.slice(0, html.indexOf("<body>"));
+    expect(head).toContain(`<meta property="og:image" content="${BASE}/og-image.jpg">`);
+    expect(head).toContain(`<meta property="og:url" content="${BASE}/">`);
+    expect(head).toContain(`<meta property="og:title" content="${APP}">`);
+    expect(head).toContain('<meta name="twitter:card" content="summary_large_image">');
+    expect(head).toContain(`<meta name="twitter:image" content="${BASE}/og-image.jpg">`);
+    expect(head).toContain('<meta name="description" content="');
+    expect(html).toContain('<img src="/hero.jpg"');
+  });
+
+  it("serves the images as static assets", async () => {
+    for (const path of ["/og-image.jpg", "/hero.jpg"]) {
+      const res = await SELF.fetch(`${BASE}${path}`);
+      expect(res.status, path).toBe(200);
+      expect(res.headers.get("content-type"), path).toContain("image/jpeg");
+    }
+  });
+
   it("privacy policy is bilingual and covers collection, use, storage, sharing, deletion", async () => {
     const res = await SELF.fetch(`${BASE}/privacy`);
     expect(res.status).toBe(200);
