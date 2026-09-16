@@ -20,6 +20,9 @@
   // ダッシュボードの GitHub 連携からのデプロイでも有効)。手動で作った既存リソースを使う場合は id / database_id を追記する。
   "kv_namespaces": [{ "binding": "OAUTH_KV" }],
   "d1_databases": [{ "binding": "DB", "database_name": "ontology", "migrations_dir": "migrations" }],
+  // トップページの画像 (hero.jpg) と OGP 用画像 (og-image.jpg)。本番では一致するパスが Worker より先に配信される。
+  // binding は Worker から明示的に配信するため (テスト環境では自動配信されないので、src/index.ts が env.ASSETS.fetch で返す)
+  "assets": { "directory": "./public", "binding": "ASSETS" },
   "observability": { "enabled": true },
   "dev": { "port": 8788 }
 }

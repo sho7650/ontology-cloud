@@ -2,12 +2,53 @@
  * トップページ (Google OAuth 同意画面の「アプリのホームページ」)。
  * ログイン不要で、アプリ名 (同意画面と同じ APP_NAME)、目的、機能、使い方、Google アカウント情報の扱いを説明する。
  * 管理画面へのリンクは置かない (ログイン画面がホームページと見なされるのを避ける)。
+ * OGP / Twitter Card のメタタグを出し、X や note.com でリンクを貼ったときに画像付きカードが表示されるようにする。
+ * 画像は public/ の静的アセット (wrangler.jsonc の assets.directory) から配信される。
  */
 import { esc, page } from "./admin/views";
 
 export const REPOSITORY_URL = "https://github.com/sho7650/ontology-cloud";
+export const OG_IMAGE_PATH = "/og-image.jpg"; // 1200×630
+export const HERO_IMAGE_PATH = "/hero.jpg"; // 1600×900
 
-export type HomeContext = { appName: string; mcpUrl: string; ownerEmail: string; siteVerification?: string };
+export type HomeContext = {
+  appName: string;
+  /** サイトのルート URL (末尾スラッシュあり)。OGP の絶対 URL に使う */
+  siteUrl: string;
+  mcpUrl: string;
+  ownerEmail: string;
+  siteVerification?: string;
+};
+
+export const homeDescription = (appName: string): string =>
+  `${appName} は、YAML で宣言したオントロジー (データの型・関係・操作のルール) を MCP サーバーとして公開し、` +
+  "Claude などの AI アシスタントから自然言語で探索・操作できるようにする技術デモです。Google アカウントでログインすれば誰でも試せます。";
+
+/** OGP / Twitter Card / description。画像 URL は絶対 URL でないとクローラーが解決できない。 */
+export function socialMetaTags(ctx: Pick<HomeContext, "appName" | "siteUrl">): string {
+  const description = esc(homeDescription(ctx.appName));
+  const image = esc(new URL(OG_IMAGE_PATH, ctx.siteUrl).href);
+  const app = esc(ctx.appName);
+  return [
+    `<meta name="description" content="${description}">`,
+    `<meta property="og:type" content="website">`,
+    `<meta property="og:site_name" content="${app}">`,
+    `<meta property="og:title" content="${app}">`,
+    `<meta property="og:description" content="${description}">`,
+    `<meta property="og:url" content="${esc(ctx.siteUrl)}">`,
+    `<meta property="og:image" content="${image}">`,
+    `<meta property="og:image:width" content="1200">`,
+    `<meta property="og:image:height" content="630">`,
+    `<meta property="og:image:type" content="image/jpeg">`,
+    `<meta property="og:image:alt" content="${app}">`,
+    `<meta property="og:locale" content="ja_JP">`,
+    `<meta name="twitter:card" content="summary_large_image">`,
+    `<meta name="twitter:title" content="${app}">`,
+    `<meta name="twitter:description" content="${description}">`,
+    `<meta name="twitter:image" content="${image}">`,
+    `<link rel="canonical" href="${esc(ctx.siteUrl)}">`,
+  ].join("");
+}
 
 export function homePage(ctx: HomeContext): string {
   const app = esc(ctx.appName);
@@ -16,8 +57,8 @@ export function homePage(ctx: HomeContext): string {
     : "";
   return page(
     ctx.appName,
-    `${verification}
-<h1>${app}</h1>
+    `<h1>${app}</h1>
+<p><img src="${HERO_IMAGE_PATH}" alt="${app}: 宣言されたオントロジーの世界を AI アシスタントと一緒に探索するイメージ" width="1600" height="900" style="width: 50%; min-width: min(320px, 100%); max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto;"></p>
 <p><strong>${app}</strong> は、YAML で宣言したオントロジー (データの型・関係・操作のルール) を
 <a href="https://modelcontextprotocol.io/" rel="noopener">MCP (Model Context Protocol)</a> サーバーとして公開し、
 Claude などの AI アシスタントから自然言語で探索・操作できるようにする技術デモです。
@@ -61,5 +102,6 @@ Gmail や Drive など他の Google データにはアクセスしません。�
 オントロジーの定義 (<code>ontology.yaml</code>) を書き換えるだけで、別のデータモデルにも同じ仕組みを適用できます。</p>
 <p>運営者: <a href="mailto:${esc(ctx.ownerEmail)}">${esc(ctx.ownerEmail)}</a></p>
 <p class="muted"><a href="/privacy">プライバシーポリシー / Privacy Policy</a> · <a href="/terms">利用規約 / Terms of Service</a></p>`,
+    verification + socialMetaTags(ctx),
   );
 }
